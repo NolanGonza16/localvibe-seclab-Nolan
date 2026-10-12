@@ -1,4 +1,5 @@
-import { exec } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { Router } from "express";
 import braces from "braces";
 import { rateLimit } from "express-rate-limit";
@@ -33,15 +34,25 @@ function wrapText(value: string, width: number): string {
   return lines.join("\n");
 }
 
-router.get("/export", (req, res) => {
+router.get("/export", async (req, res) => {
   const file = String(req.query.file ?? "notas.txt");
-  exec(`cat ./exports/${file}`, (error, stdout) => {
-    if (error) {
-      res.status(500).json({ error: "No se pudo exportar el archivo solicitado" });
-      return;
-    }
+  const safeName = path.basename(file);
+  if (!/^[A-Za-z0-9._-]+$/.test(safeName)) {
+    res.status(400).json({ error: "Nombre de archivo invalido" });
+    return;
+  }
+  const exportsDir = path.resolve("./exports");
+  const resolved = path.resolve(exportsDir, safeName);
+  if (!resolved.startsWith(exportsDir + path.sep)) {
+    res.status(400).json({ error: "Nombre de archivo invalido" });
+    return;
+  }
+  try {
+    const stdout = await readFile(resolved, "utf8");
     res.type("text/plain").send(stdout);
-  });
+  } catch {
+    res.status(500).json({ error: "No se pudo exportar el archivo solicitado" });
+  }
 });
 
 router.get(
