@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "next": "^16.3.8",
     "semver": "^5.7.2"
   }
 }
